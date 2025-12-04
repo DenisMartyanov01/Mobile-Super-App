@@ -1,4 +1,4 @@
-package com.example.myapplication;
+package com.example.myapplication.Notifications;
 
 import android.app.DatePickerDialog;
 import android.app.Dialog;
@@ -14,11 +14,13 @@ import android.widget.TimePicker;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
+
+import com.example.myapplication.R;
+
 import java.util.Calendar;
 
 public class NotificationDialog extends DialogFragment {
 
-    // UI элементы
     private EditText titleEditText;
     private EditText messageEditText;
     private Button dateButton;
@@ -26,23 +28,19 @@ public class NotificationDialog extends DialogFragment {
     private Button saveButton;
     private Button deleteButton;
 
-    // Данные
     private Calendar selectedDateTime = Calendar.getInstance();
     private NotificationData notificationData;
     private NotificationDialogListener listener;
 
-    // Интерфейс для обратного вызова
     public interface NotificationDialogListener {
         void onNotificationSaved(NotificationData notification);
         void onNotificationDeleted(int notificationId);
     }
 
-    // Установка слушателя
     public void setNotificationDialogListener(NotificationDialogListener listener) {
         this.listener = listener;
     }
 
-    // Установка данных для редактирования
     public void setNotificationData(NotificationData notificationData) {
         this.notificationData = notificationData;
         if (notificationData != null) {
@@ -54,17 +52,17 @@ public class NotificationDialog extends DialogFragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+                             @Nullable Bundle savedInstanceState)
+    {
         View view = inflater.inflate(R.layout.dialog_notification, container, false);
 
-        // Инициализация UI
         initViews(view);
 
-        // Загрузка данных если редактируем
-        if (notificationData != null) {
+        if (notificationData != null)
+        {
             loadNotificationData();
-        } else {
-            // Для нового уведомления устанавливаем время на +1 час
+        } else
+        {
             selectedDateTime.add(Calendar.HOUR, 1);
         }
 
@@ -73,7 +71,8 @@ public class NotificationDialog extends DialogFragment {
         return view;
     }
 
-    private void initViews(View view) {
+    private void initViews(View view)
+    {
         titleEditText = view.findViewById(R.id.titleEditText);
         messageEditText = view.findViewById(R.id.messageEditText);
         dateButton = view.findViewById(R.id.dateButton);
@@ -81,28 +80,32 @@ public class NotificationDialog extends DialogFragment {
         saveButton = view.findViewById(R.id.saveButton);
         deleteButton = view.findViewById(R.id.deleteButton);
 
-        // Обработчики нажатий
         dateButton.setOnClickListener(v -> showDatePicker());
         timeButton.setOnClickListener(v -> showTimePicker());
         saveButton.setOnClickListener(v -> saveNotification());
         deleteButton.setOnClickListener(v -> deleteNotification());
 
-        // Показываем кнопку удаления только при редактировании
-        if (notificationData != null) {
+        if (notificationData != null)
+        {
             deleteButton.setVisibility(View.VISIBLE);
-        } else {
+        }
+        else
+        {
             deleteButton.setVisibility(View.GONE);
         }
     }
 
-    private void loadNotificationData() {
-        if (notificationData != null) {
+    private void loadNotificationData()
+    {
+        if (notificationData != null)
+        {
             titleEditText.setText(notificationData.getTitle());
             messageEditText.setText(notificationData.getMessage());
         }
     }
 
-    private void showDatePicker() {
+    private void showDatePicker()
+    {
         DatePickerDialog datePicker = new DatePickerDialog(
                 requireContext(),
                 new DatePickerDialog.OnDateSetListener() {
@@ -121,7 +124,8 @@ public class NotificationDialog extends DialogFragment {
         datePicker.show();
     }
 
-    private void showTimePicker() {
+    private void showTimePicker()
+    {
         TimePickerDialog timePicker = new TimePickerDialog(
                 requireContext(),
                 new TimePickerDialog.OnTimeSetListener() {
@@ -139,7 +143,8 @@ public class NotificationDialog extends DialogFragment {
         timePicker.show();
     }
 
-    private void updateDateTimeButtons() {
+    private void updateDateTimeButtons()
+    {
         // Форматируем дату
         String dateText = String.format("%02d.%02d.%d",
                 selectedDateTime.get(Calendar.DAY_OF_MONTH),
