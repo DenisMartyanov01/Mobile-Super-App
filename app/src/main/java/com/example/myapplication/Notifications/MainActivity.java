@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.myapplication.Notes.NotesActivity;
 import com.example.myapplication.R;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
@@ -357,6 +358,12 @@ public class MainActivity extends AppCompatActivity
             }
         };
         updateHandler.post(updateRunnable);
+    }
+
+    public void GoToNotesActivity(View v)
+    {
+        Intent intent = new Intent(this, NotesActivity.class);
+        startActivity(intent);
     }
 
     @Override

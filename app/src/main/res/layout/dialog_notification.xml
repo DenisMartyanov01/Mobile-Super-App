@@ -10,56 +10,56 @@
         android:id="@+id/titleEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
         android:hint="Заголовок уведомления *"
-        android:padding="12dp"
-        android:layout_marginBottom="8dp" />
+        android:padding="12dp" />
 
     <!-- Сообщение -->
     <EditText
         android:id="@+id/messageEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
         android:hint="Текст сообщения *"
-        android:padding="12dp"
-        android:layout_marginBottom="16dp" />
+        android:padding="12dp" />
 
     <!-- Дата -->
     <Button
         android:id="@+id/dateButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Выбрать дату"
         android:layout_marginBottom="8dp"
-        android:padding="12dp" />
+        android:padding="12dp"
+        android:text="Выбрать дату" />
 
     <!-- Время -->
     <Button
         android:id="@+id/timeButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Выбрать время"
         android:layout_marginBottom="16dp"
-        android:padding="12dp" />
+        android:padding="12dp"
+        android:text="Выбрать время" />
 
     <!-- Кнопка сохранения -->
     <Button
         android:id="@+id/saveButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Сохранить"
-        android:backgroundTint="#4CAF50"
-        android:textColor="#FFFFFF"
         android:layout_marginBottom="8dp"
-        android:padding="12dp" />
+        android:backgroundTint="#4CAF50"
+        android:padding="12dp"
+        android:text="Сохранить"
+        android:textColor="#FFFFFF" />
 
     <!-- Кнопка удаления (только при редактировании) -->
     <Button
         android:id="@+id/deleteButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Удалить"
         android:backgroundTint="#F44336"
-        android:textColor="#FFFFFF"
-        android:padding="12dp" />
+        android:padding="12dp"
+        android:text="Удалить"
+        android:textColor="#FFFFFF" />
 
 </LinearLayout>
