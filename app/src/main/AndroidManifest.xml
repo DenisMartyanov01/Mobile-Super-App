@@ -31,6 +31,9 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".Notes.CreateNoteActivity" />
+        <activity android:name=".Notes.ViewNoteActivity" />
+
 
     </application>
 
