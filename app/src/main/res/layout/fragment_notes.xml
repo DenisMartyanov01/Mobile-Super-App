@@ -7,18 +7,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    tools:context=".Notes.NotesActivity">
-
-    <Button
-        android:id="@+id/button_to_notifications"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:onClick="GoToNotificationsActivity"
-        android:text="@string/to_notifications"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    tools:context=".Notes.NotesFragment">
 
     <Button
         android:id="@+id/btnCreateNote"

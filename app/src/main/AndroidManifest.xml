@@ -18,10 +18,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
         <activity
-            android:name=".Notes.NotesActivity"
-            android:exported="false" />
-        <activity
-            android:name=".Notifications.MainActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.MyApplication">
             <intent-filter>

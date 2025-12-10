@@ -5,36 +5,39 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.myapplication.Notes.NotesActivity;
 import com.example.myapplication.R;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity
-        implements NotificationAdapter.OnNotificationClickListener,
-        NotificationDialog.NotificationDialogListener {
+public class NotificationsFragment extends Fragment implements NotificationAdapter.OnNotificationClickListener,
+        NotificationDialog.NotificationDialogListener{
 
     private RecyclerView recyclerView;
     private NotificationAdapter adapter;
-    private FloatingActionButton fabAdd;
     private NotificationManager notificationManager;
 
     private List<NotificationData> notifications = new ArrayList<>();
@@ -45,26 +48,30 @@ public class MainActivity extends AppCompatActivity
     private Handler updateHandler;
     private Runnable updateRunnable;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+    public NotificationsFragment() {}
 
-        initViews();
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_notifications, container, false);
+
+        initViews(view);
 
         setupRecyclerView();
 
         loadSampleData();
 
+        notificationManager = (NotificationManager) requireActivity().getSystemService(Context.NOTIFICATION_SERVICE);
+        createNotificationChannel();
+
         startTimeUpdater();
 
-        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        createNotificationChannel();
+        return view;
     }
 
-    private void initViews() {
-        recyclerView = findViewById(R.id.recyclerView);
-        fabAdd = findViewById(R.id.fabAdd);
+    private void initViews(View view) {
+        recyclerView = view.findViewById(R.id.recyclerView);
 
 //        fabAdd.setOnClickListener(v -> showNotificationDialog(null));
     }
@@ -72,9 +79,9 @@ public class MainActivity extends AppCompatActivity
     public void showNotification(View view) {
         Log.d("MyTag", "Показ уведомления начат");
 
-        Intent intent = new Intent(this, MainActivity.class);
+        Intent intent = new Intent(requireContext(), requireActivity().getClass());
         PendingIntent pendingIntent = PendingIntent.getActivity(
-                this,
+                getContext(),
                 0,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
@@ -83,7 +90,7 @@ public class MainActivity extends AppCompatActivity
         // Важно: проверяем версию Android
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Для Android 8.0+ используем канал
-            Notification.Builder builder = new Notification.Builder(this, CHANNEL_ID)
+            Notification.Builder builder = new Notification.Builder(requireContext(), CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.ic_dialog_info) // временно системная иконка
                     .setContentTitle("SUBSCRIBE")
                     .setContentText("MOBILE APP DEVELOPMENT")
@@ -99,7 +106,7 @@ public class MainActivity extends AppCompatActivity
 
         } else {
             // Для старых версий Android
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(requireContext())
                     .setSmallIcon(android.R.drawable.ic_dialog_info)
                     .setContentTitle("SUBSCRIBE")
                     .setContentText("MOBILE APP DEVELOPMENT")
@@ -118,12 +125,12 @@ public class MainActivity extends AppCompatActivity
 
     private void checkNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this,
+            if (ContextCompat.checkSelfPermission(requireContext(),
                     Manifest.permission.POST_NOTIFICATIONS) !=
                     PackageManager.PERMISSION_GRANTED) {
 
                 // Запрашиваем разрешение
-                ActivityCompat.requestPermissions(this,
+                ActivityCompat.requestPermissions(requireActivity(),
                         new String[]{Manifest.permission.POST_NOTIFICATIONS},
                         100);
 
@@ -161,7 +168,7 @@ public class MainActivity extends AppCompatActivity
 
     private void setupRecyclerView()
     {
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new NotificationAdapter(notifications, this);
         recyclerView.setAdapter(adapter);
     }
@@ -227,7 +234,7 @@ public class MainActivity extends AppCompatActivity
 
         dialog.setNotificationDialogListener(this);
 
-        dialog.show(getSupportFragmentManager(), "notification_dialog");
+        dialog.show(getChildFragmentManager(), "notification_dialog");
     }
 
     @Override
@@ -237,7 +244,7 @@ public class MainActivity extends AppCompatActivity
         {
             notification.setId(nextId++);
             notifications.add(0, notification); // Добавляем в начало списка
-            Toast.makeText(this, "Уведомление создано", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Уведомление создано", Toast.LENGTH_SHORT).show();
         }
         else
         {
@@ -246,7 +253,7 @@ public class MainActivity extends AppCompatActivity
                 if (notifications.get(i).getId() == notification.getId())
                 {
                     notifications.set(i, notification);
-                    Toast.makeText(this, "Уведомление обновлено", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "Уведомление обновлено", Toast.LENGTH_SHORT).show();
                     break;
                 }
             }
@@ -258,7 +265,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onNotificationDeleted(int notificationId)
     {
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Удаление уведомления")
                 .setMessage("Вы уверены, что хотите удалить это уведомление?")
                 .setPositiveButton("Удалить", (dialog, which) -> {
@@ -276,7 +283,7 @@ public class MainActivity extends AppCompatActivity
             {
                 notifications.remove(i);
                 adapter.notifyItemRemoved(i);
-                Toast.makeText(this, "Уведомление удалено", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Уведомление удалено", Toast.LENGTH_SHORT).show();
                 return;
             }
         }
@@ -296,7 +303,7 @@ public class MainActivity extends AppCompatActivity
 
     private void showNotificationDetails(NotificationData notification)
     {
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Информация об уведомлении")
                 .setMessage(
                         "Заголовок: " + notification.getTitle() + "\n\n" +
@@ -342,13 +349,13 @@ public class MainActivity extends AppCompatActivity
                             if (notification.isTimePassed())
                             {
                                 viewHolder.statusTextView.setTextColor(
-                                        getResources().getColor(android.R.color.holo_red_dark)
+                                        requireContext().getColor(android.R.color.holo_red_dark)
                                 );
                             }
                             else
                             {
                                 viewHolder.statusTextView.setTextColor(
-                                        getResources().getColor(android.R.color.holo_green_dark)
+                                        requireContext().getColor(android.R.color.holo_green_dark)
                                 );
                             }
                         }
@@ -360,16 +367,11 @@ public class MainActivity extends AppCompatActivity
         updateHandler.post(updateRunnable);
     }
 
-    public void GoToNotesActivity(View v)
-    {
-        Intent intent = new Intent(this, NotesActivity.class);
-        startActivity(intent);
-    }
 
     @Override
-    protected void onDestroy()
+    public void onDestroyView()
     {
-        super.onDestroy();
+        super.onDestroyView();
         if (updateHandler != null)
         {
             updateHandler.removeCallbacks(updateRunnable);
