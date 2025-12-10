@@ -2,9 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/bottom_nav_notifications"
+        android:icon="@drawable/notification_icon"
         android:title="Напоминания"/>
 
     <item
         android:id="@+id/bottom_nav_notes"
+        android:icon="@drawable/ic_notes"
         android:title="Заметки"/>
 </menu>
