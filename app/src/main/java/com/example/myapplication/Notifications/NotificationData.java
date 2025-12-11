@@ -10,14 +10,12 @@ public class NotificationData implements Serializable {
     private String title;
     private String message;
     private long timeInMillis;
-    private boolean isActive;
 
     public NotificationData(int id, String title, String message, long timeInMillis) {
         this.id = id;
         this.title = title;
         this.message = message;
         this.timeInMillis = timeInMillis;
-        this.isActive = true;
     }
 
     // Getters and Setters
@@ -35,41 +33,32 @@ public class NotificationData implements Serializable {
         this.timeInMillis = timeInMillis;
     }
 
-    public boolean isActive() { return isActive; }
-    public void setActive(boolean active) { isActive = active; }
-
-    // Форматированное время для отображения
     public String getFormattedTime() {
         SimpleDateFormat sdf = new SimpleDateFormat(
                 "dd.MM.yyyy HH:mm", Locale.getDefault());
         return sdf.format(new Date(timeInMillis));
     }
 
-    // Оставшееся время
     public String getRemainingTime() {
         long remaining = timeInMillis - System.currentTimeMillis();
 
         if (remaining <= 0) {
-            return "Просрочено";
+            return "ПРОСРОЧЕНО";
         }
 
         long seconds = remaining / 1000;
         long minutes = seconds / 60;
         long hours = minutes / 60;
-        long days = hours / 24;
 
-        if (days > 0) {
-            return "Через " + days + " дн.";
-        } else if (hours > 0) {
-            return "Через " + hours + " ч.";
+        if (hours > 0) {
+            return "Через " + hours + " ч " + (minutes % 60) + " мин";
         } else if (minutes > 0) {
-            return "Через " + minutes + " мин.";
+            return "Через " + minutes + " мин";
         } else {
-            return "Через " + seconds + " сек.";
+            return "Через " + seconds + " сек";
         }
     }
 
-    // Проверка, прошло ли время
     public boolean isTimePassed() {
         return System.currentTimeMillis() >= timeInMillis;
     }

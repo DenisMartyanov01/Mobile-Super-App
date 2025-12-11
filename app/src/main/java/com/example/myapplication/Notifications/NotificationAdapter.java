@@ -39,15 +39,13 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         NotificationData notification = notifications.get(position);
 
-        // Устанавливаем данные в элементы View
         holder.titleTextView.setText(notification.getTitle());
         holder.messageTextView.setText(notification.getMessage());
         holder.timeTextView.setText(notification.getFormattedTime());
 
-        // Обновляем статус времени
-        updateRemainingTime(holder, notification);
+        // Простой статус
+        updateStatus(holder, notification);
 
-        // Обработчики кликов
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onNotificationClick(notification);
@@ -63,35 +61,31 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
         });
     }
 
-    // Метод для обновления оставшегося времени (может вызываться извне)
-    public void updateRemainingTime(ViewHolder holder, NotificationData notification) {
-        holder.statusTextView.setText(notification.getRemainingTime());
+    private void updateStatus(ViewHolder holder, NotificationData notification) {
+        long currentTime = System.currentTimeMillis();
+        long notificationTime = notification.getTimeInMillis();
 
-        // Меняем цвет статуса в зависимости от времени
-        if (notification.isTimePassed()) {
+        if (currentTime >= notificationTime) {
+            // Уведомление просрочено - будет удалено через секунду
+            holder.statusTextView.setText("ПРОСРОЧЕНО");
             holder.statusTextView.setTextColor(
                     holder.itemView.getContext().getResources()
                             .getColor(android.R.color.holo_red_dark)
             );
         } else {
-            // Определяем цвет по оставшемуся времени
-            long remaining = notification.getTimeInMillis() - System.currentTimeMillis();
-            long minutes = remaining / (60 * 1000);
+            // Уведомление еще активно
+            long remaining = notificationTime - currentTime;
+            long seconds = remaining / 1000;
+            long minutes = seconds / 60;
 
-            if (minutes < 5) {
-                // Менее 5 минут - красный
-                holder.statusTextView.setTextColor(
-                        holder.itemView.getContext().getResources()
-                                .getColor(android.R.color.holo_red_dark)
-                );
-            } else if (minutes < 60) {
-                // Менее часа - оранжевый
+            if (seconds < 60) {
+                holder.statusTextView.setText("Через " + seconds + " сек");
                 holder.statusTextView.setTextColor(
                         holder.itemView.getContext().getResources()
                                 .getColor(android.R.color.holo_orange_dark)
                 );
             } else {
-                // Более часа - зеленый
+                holder.statusTextView.setText("Через " + minutes + " мин");
                 holder.statusTextView.setTextColor(
                         holder.itemView.getContext().getResources()
                                 .getColor(android.R.color.holo_green_dark)
@@ -105,13 +99,11 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
         return notifications.size();
     }
 
-    // Метод для обновления списка
     public void updateNotifications(List<NotificationData> newNotifications) {
         this.notifications = newNotifications;
         notifyDataSetChanged();
     }
 
-    // Метод для удаления элемента
     public void removeNotification(int position) {
         if (position >= 0 && position < notifications.size()) {
             notifications.remove(position);
@@ -119,7 +111,6 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
         }
     }
 
-    // Внутренний класс ViewHolder
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView titleTextView;
         TextView messageTextView;

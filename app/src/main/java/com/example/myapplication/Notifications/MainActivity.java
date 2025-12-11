@@ -1,30 +1,25 @@
 package com.example.myapplication.Notifications;
 
-import android.Manifest;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
+import android.annotation.SuppressLint;
+import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.widget.Toast;
+
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.app.NotificationCompat;
-import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.myapplication.Notes.NotesActivity;
 import com.example.myapplication.R;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity
@@ -34,189 +29,76 @@ public class MainActivity extends AppCompatActivity
     private RecyclerView recyclerView;
     private NotificationAdapter adapter;
     private FloatingActionButton fabAdd;
-    private NotificationManager notificationManager;
 
     private List<NotificationData> notifications = new ArrayList<>();
     private int nextId = 1;
-    private static final String CHANNEL_ID = "MY_NOTIFICATION_CHANNEL";
-    private static final int NOTIFICATION_ID = 1;
 
     private Handler updateHandler;
     private Runnable updateRunnable;
+    private static final long CHECK_INTERVAL_MS = 1000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        initViews();
-
-        setupRecyclerView();
-
-        loadSampleData();
-
-        startTimeUpdater();
-
-        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        createNotificationChannel();
-    }
-
-    private void initViews() {
         recyclerView = findViewById(R.id.recyclerView);
         fabAdd = findViewById(R.id.fabAdd);
 
-//        fabAdd.setOnClickListener(v -> showNotificationDialog(null));
-    }
+        fabAdd.setOnClickListener(v -> showNotificationDialog(null));
 
-    public void showNotification(View view) {
-        Log.d("MyTag", "Показ уведомления начат");
-
-        Intent intent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this,
-                0,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        // Важно: проверяем версию Android
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Для Android 8.0+ используем канал
-            Notification.Builder builder = new Notification.Builder(this, CHANNEL_ID)
-                    .setSmallIcon(android.R.drawable.ic_dialog_info) // временно системная иконка
-                    .setContentTitle("SUBSCRIBE")
-                    .setContentText("MOBILE APP DEVELOPMENT")
-                    .setPriority(Notification.PRIORITY_DEFAULT)
-                    .setContentIntent(pendingIntent)
-                    .setAutoCancel(true)
-                    .setWhen(System.currentTimeMillis())
-                    .setShowWhen(true);
-
-            Notification notification = builder.build();
-            notificationManager.notify(NOTIFICATION_ID, notification);
-            Log.d("MyTag", "Уведомление создано (Android 8.0+)");
-
-        } else {
-            // Для старых версий Android
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
-                    .setSmallIcon(android.R.drawable.ic_dialog_info)
-                    .setContentTitle("SUBSCRIBE")
-                    .setContentText("MOBILE APP DEVELOPMENT")
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                    .setContentIntent(pendingIntent)
-                    .setAutoCancel(true);
-
-            Notification notification = builder.build();
-            notificationManager.notify(NOTIFICATION_ID, notification);
-            Log.d("MyTag", "Уведомление создано (старая версия Android)");
-        }
-
-        // Проверяем разрешения для Android 13+
-        checkNotificationPermission();
-    }
-
-    private void checkNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.POST_NOTIFICATIONS) !=
-                    PackageManager.PERMISSION_GRANTED) {
-
-                // Запрашиваем разрешение
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                        100);
-
-                Log.d("MyTag", "Запрошено разрешение на уведомления");
-            } else {
-                Log.d("MyTag", "Разрешение на уведомления уже есть");
-            }
-        }
-    }
-
-    private void createNotificationChannel()
-    {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-        {
-            CharSequence channelName = "Мои уведомления";
-            String channelDescription = "Канал для показа уведомлений";
-            int importance = NotificationManager.IMPORTANCE_HIGH; // Увеличиваем важность
-
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    channelName,
-                    importance
-            );
-            channel.setDescription(channelDescription);
-            channel.enableLights(true);
-            channel.enableVibration(true);
-            channel.setVibrationPattern(new long[]{0, 500, 250, 500});
-
-            if (notificationManager != null)
-            {
-                notificationManager.createNotificationChannel(channel);
-            }
-        }
-    }
-
-    private void setupRecyclerView()
-    {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new NotificationAdapter(notifications, this);
         recyclerView.setAdapter(adapter);
+
+        loadData();
+
+        startInstantNotificationChecker();
     }
 
-    private void loadSampleData()
+    public void GoToNotesActivity(View v)
+    {
+        Intent intent = new Intent(this, NotesActivity.class);
+        startActivity(intent);
+    }
+
+    private void loadData()
     {
         notifications.clear();
 
-        Calendar calendar = Calendar.getInstance();
+//        Calendar calendar = Calendar.getInstance();
+//
+//        Intent intent = new Intent(this, SimpleReceiver.class);
 
-        calendar.add(Calendar.HOUR, 1);
-        notifications.add(new NotificationData(
-                nextId++,
-                "Встреча с командой",
-                "Обсуждение нового проекта в конференц-зале",
-                calendar.getTimeInMillis()
-        ));
+//        for(int i = 0; i < 20; i++) {
+//            PendingIntent pi = PendingIntent.getBroadcast(
+//                    this,
+//                    i,
+//                    intent,
+//                    PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
+//            );
+//
+//            if (pi == null) continue;
+//
+//            calendar.add(Calendar.SECOND, 10);
+//            notifications.add(new NotificationData(
+//                    i,
+//                    "Тест: удалится через 10 сек",
+//                    "Это уведомление удалится сразу по истечении времени",
+//                    calendar.getTimeInMillis()
+//            ));
+//            nextId = i + 1;
+//
+//        }
 
-        calendar.add(Calendar.DAY_OF_YEAR, 1);
-        calendar.add(Calendar.HOUR, 3);
-        notifications.add(new NotificationData(
-                nextId++,
-                "День рождения друга",
-                "Не забыть купить подарок и поздравить",
-                calendar.getTimeInMillis()
-        ));
+        // Типо можно проверить существует ли этот pendingIntent, но он не могет его
+        // дату узнатть, так что надо сохранять инфу уведомлений отдельно походу.
 
-        calendar.add(Calendar.DAY_OF_YEAR, -3);
-        notifications.add(new NotificationData(
-                nextId++,
-                "Позвонить врачу",
-                "Записаться на прием к терапевту",
-                calendar.getTimeInMillis()
-        ));
-
-        calendar = Calendar.getInstance();
-        calendar.add(Calendar.MINUTE, 30);
-        notifications.add(new NotificationData(
-                nextId++,
-                "Обед с коллегой",
-                "Встреча в кафе в 13:00",
-                calendar.getTimeInMillis()
-        ));
-
-        calendar.add(Calendar.MINUTE, -25);
-        calendar.add(Calendar.SECOND, 30);
-        notifications.add(new NotificationData(
-                nextId++,
-                "Скоро дедлайн",
-                "Завершить отчет до конца дня",
-                calendar.getTimeInMillis()
-        ));
 
         adapter.notifyDataSetChanged();
-    }
 
+        RemoveExpiredNotifications();
+    }
     private void showNotificationDialog(NotificationData notificationData) {
         NotificationDialog dialog = new NotificationDialog();
 
@@ -229,29 +111,201 @@ public class MainActivity extends AppCompatActivity
         dialog.show(getSupportFragmentManager(), "notification_dialog");
     }
 
+    @SuppressLint("ScheduleExactAlarm")
+    private void CreateNotification(NotificationData data)
+    {
+        try {
+            // Добавляем в список
+            data.setId(nextId++);
+            notifications.add(0, data);
+            adapter.notifyDataSetChanged();
+
+            // 1. Получаем AlarmManager
+            AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager == null) {
+                Log.e("MyTag", "AlarmManager is null");
+                return;
+            }
+
+            // 2. Создаем Intent для BroadcastReceiver
+            Intent intent = new Intent(this, SimpleReceiver.class);
+            intent.setAction("MY_TEST_ACTION");
+            intent.putExtra("extra", data.getMessage());
+            intent.putExtra("notification_id", data.getId());
+            intent.putExtra("title", data.getTitle());
+            intent.putExtra("time", System.currentTimeMillis());
+
+            // ВАЖНОЕ ИСПРАВЛЕНИЕ: Правильные флаги для PendingIntent
+            int flags;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // Для Android 12+ используем FLAG_IMMUTABLE или FLAG_MUTABLE с FLAG_UPDATE_CURRENT
+                flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+            } else {
+                flags = PendingIntent.FLAG_UPDATE_CURRENT;
+            }
+
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    this,
+                    data.getId(),
+                    intent,
+                    flags
+            );
+
+            long triggerTime = data.getTimeInMillis();
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerTime,
+                        pendingIntent
+                );
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                alarmManager.setExact(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerTime,
+                        pendingIntent
+                );
+            } else {
+                alarmManager.set(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerTime,
+                        pendingIntent
+                );
+            }
+
+            // 6. Проверяем, что все установлено правильно
+            // Для проверки используем тот же набор флагов
+            boolean isSet = (PendingIntent.getBroadcast(this, data.getId(),
+                    intent, flags | PendingIntent.FLAG_NO_CREATE) != null);
+
+        } catch (SecurityException e) {
+
+            // Для Android 12+ нужно специальное разрешение
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+                    Intent permissionIntent = new Intent(
+                            android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                    );
+                    startActivity(permissionIntent);
+                    android.widget.Toast.makeText(this,
+                            "Разрешите точные уведомления в настройках",
+                            android.widget.Toast.LENGTH_LONG).show();
+                }
+            }
+
+        }
+    }
+
+    private void EditNotification(NotificationData data)
+    {
+        for (int i = 0; i < notifications.size(); i++)
+        {
+            if (notifications.get(i).getId() == data.getId())
+            {
+                notifications.set(i, data);
+                break;
+            }
+        }
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) {
+            return;
+        }
+
+        Intent intent = new Intent(this, SimpleReceiver.class);
+        intent.setAction("MY_TEST_ACTION");
+        intent.putExtra("extra", data.getMessage());
+        intent.putExtra("notification_id", data.getId());
+        intent.putExtra("title", data.getTitle());
+        intent.putExtra("time", System.currentTimeMillis());
+
+        int flags;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Для Android 12+ используем FLAG_IMMUTABLE или FLAG_MUTABLE с FLAG_UPDATE_CURRENT
+            flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+        } else {
+            flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        }
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this,
+                data.getId(),
+                intent,
+                flags
+        );
+
+        long triggerTime = data.getTimeInMillis();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerTime,
+                    pendingIntent
+            );
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            alarmManager.setExact(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerTime,
+                    pendingIntent
+            );
+        } else {
+            alarmManager.set(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerTime,
+                    pendingIntent
+            );
+        }
+    }
+
+    private void DeleteNotification(int id)
+    {
+        for (int i = 0; i < notifications.size(); i++)
+        {
+            if (notifications.get(i).getId() == id)
+            {
+                notifications.remove(i);
+                adapter.notifyItemRemoved(i);
+                break;
+            }
+        }
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) {
+            return;
+        }
+
+        Intent intent = new Intent(this, SimpleReceiver.class);
+        intent.setAction("MY_TEST_ACTION");
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this,
+                id,
+                intent,
+                PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        if (pendingIntent != null) {
+            alarmManager.cancel(pendingIntent);
+            pendingIntent.cancel();
+        }
+
+    }
+
     @Override
     public void onNotificationSaved(NotificationData notification)
     {
         if (notification.getId() == -1)
         {
-            notification.setId(nextId++);
-            notifications.add(0, notification); // Добавляем в начало списка
-            Toast.makeText(this, "Уведомление создано", Toast.LENGTH_SHORT).show();
+            CreateNotification(notification);
         }
         else
         {
-            for (int i = 0; i < notifications.size(); i++)
-            {
-                if (notifications.get(i).getId() == notification.getId())
-                {
-                    notifications.set(i, notification);
-                    Toast.makeText(this, "Уведомление обновлено", Toast.LENGTH_SHORT).show();
-                    break;
-                }
-            }
+            EditNotification(notification);
         }
 
         adapter.notifyDataSetChanged();
+        RemoveExpiredNotifications();
     }
 
     @Override
@@ -261,24 +315,10 @@ public class MainActivity extends AppCompatActivity
                 .setTitle("Удаление уведомления")
                 .setMessage("Вы уверены, что хотите удалить это уведомление?")
                 .setPositiveButton("Удалить", (dialog, which) -> {
-                    performDelete(notificationId);
+                    DeleteNotification(notificationId);
                 })
                 .setNegativeButton("Отмена", null)
                 .show();
-    }
-
-    private void performDelete(int notificationId)
-    {
-        for (int i = 0; i < notifications.size(); i++)
-        {
-            if (notifications.get(i).getId() == notificationId)
-            {
-                notifications.remove(i);
-                adapter.notifyItemRemoved(i);
-                Toast.makeText(this, "Уведомление удалено", Toast.LENGTH_SHORT).show();
-                return;
-            }
-        }
     }
 
     @Override
@@ -301,7 +341,7 @@ public class MainActivity extends AppCompatActivity
                         "Заголовок: " + notification.getTitle() + "\n\n" +
                                 "Сообщение: " + notification.getMessage() + "\n\n" +
                                 "Время: " + notification.getFormattedTime() + "\n" +
-                                "Статус: " + (notification.isActive() ? "Активно" : "Неактивно") + "\n" +
+                                "Статус: " + (notification.isTimePassed() ? "Просрочено" : "Активно") + "\n" +
                                 "ID: " + notification.getId()
                 )
                 .setPositiveButton("Редактировать", (dialog, which) -> {
@@ -314,49 +354,85 @@ public class MainActivity extends AppCompatActivity
                 .show();
     }
 
-    private void startTimeUpdater()
-    {
+    private void startInstantNotificationChecker() {
         updateHandler = new Handler();
-        updateRunnable = new Runnable()
-        {
+        updateRunnable = new Runnable() {
             @Override
-            public void run()
-            {
-                for (int i = 0; i < recyclerView.getChildCount(); i++)
-                {
-                    RecyclerView.ViewHolder holder = recyclerView.findViewHolderForAdapterPosition(i);
-                    if (holder instanceof NotificationAdapter.ViewHolder)
-                    {
-                        int position = holder.getAdapterPosition();
-                        if (position >= 0 && position < notifications.size())
-                        {
-                            NotificationData notification = notifications.get(position);
-                            NotificationAdapter.ViewHolder viewHolder =
-                                    (NotificationAdapter.ViewHolder) holder;
+            public void run() {
+                updateVisibleItems();
 
-                            // Обновляем статус
-                            viewHolder.statusTextView.setText(notification.getRemainingTime());
+                RemoveExpiredNotifications();
 
-                            // Меняем цвет статуса
-                            if (notification.isTimePassed())
-                            {
-                                viewHolder.statusTextView.setTextColor(
-                                        getResources().getColor(android.R.color.holo_red_dark)
-                                );
-                            }
-                            else
-                            {
-                                viewHolder.statusTextView.setTextColor(
-                                        getResources().getColor(android.R.color.holo_green_dark)
-                                );
-                            }
-                        }
-                    }
-                }
-                updateHandler.postDelayed(this, 1000);
+                updateHandler.postDelayed(this, CHECK_INTERVAL_MS);
             }
         };
         updateHandler.post(updateRunnable);
+    }
+
+    private void updateVisibleItems() {
+        for (int i = 0; i < recyclerView.getChildCount(); i++) {
+            RecyclerView.ViewHolder holder = recyclerView.findViewHolderForAdapterPosition(i);
+            if (holder instanceof NotificationAdapter.ViewHolder) {
+                int position = holder.getAdapterPosition();
+                if (position >= 0 && position < notifications.size()) {
+                    NotificationData notification = notifications.get(position);
+                    NotificationAdapter.ViewHolder viewHolder =
+                            (NotificationAdapter.ViewHolder) holder;
+
+                    viewHolder.statusTextView.setText(notification.getRemainingTime());
+
+                    if (notification.isTimePassed()) {
+                        viewHolder.statusTextView.setTextColor(
+                                getResources().getColor(android.R.color.holo_red_dark)
+                        );
+                        viewHolder.statusTextView.setText("ПРОСРОЧЕНО - удаление...");
+                    } else {
+                        long remaining = notification.getTimeInMillis() - System.currentTimeMillis();
+                        long seconds = remaining / 1000;
+
+                        if (seconds < 60) {
+                            viewHolder.statusTextView.setText("Через " + seconds + " сек");
+                            viewHolder.statusTextView.setTextColor(
+                                    getResources().getColor(android.R.color.holo_red_dark)
+                            );
+                        } else if (seconds < 300) {
+                            long minutes = seconds / 60;
+                            viewHolder.statusTextView.setText("Через " + minutes + " мин");
+                            viewHolder.statusTextView.setTextColor(
+                                    getResources().getColor(android.R.color.holo_orange_dark)
+                            );
+                        } else {
+                            long minutes = seconds / 60;
+                            viewHolder.statusTextView.setText("Через " + minutes + " мин");
+                            viewHolder.statusTextView.setTextColor(
+                                    getResources().getColor(android.R.color.holo_green_dark)
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void RemoveExpiredNotifications()
+    {
+        long currentTime = System.currentTimeMillis();
+        boolean removedAny = false;
+
+        for (int i = notifications.size() - 1; i >= 0; i--) {
+            NotificationData notification = notifications.get(i);
+
+            if (currentTime >= notification.getTimeInMillis()) {
+
+                notifications.remove(i);
+                adapter.notifyItemRemoved(i);
+                removedAny = true;
+            }
+        }
+
+        if (removedAny) {
+            adapter.notifyDataSetChanged();
+        }
     }
 
     @Override
