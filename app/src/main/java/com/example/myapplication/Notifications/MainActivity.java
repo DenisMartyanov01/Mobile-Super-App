@@ -2,14 +2,18 @@ package com.example.myapplication.Notifications;
 
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,6 +24,7 @@ import com.example.myapplication.Notes.NotesActivity;
 import com.example.myapplication.R;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity
@@ -112,8 +117,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     @SuppressLint("ScheduleExactAlarm")
-    private void CreateNotification(NotificationData data)
-    {
+    private void CreateNotification(NotificationData data) {
         try {
             // Добавляем в список
             data.setId(nextId++);
@@ -127,7 +131,22 @@ public class MainActivity extends AppCompatActivity
                 return;
             }
 
-            // 2. Создаем Intent для BroadcastReceiver
+            // 2. Проверяем разрешение для Android 12+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (!alarmManager.canScheduleExactAlarms()) {
+                    // Запрашиваем разрешение
+                    Intent permissionIntent = new Intent(
+                            android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                    );
+                    startActivity(permissionIntent);
+                    Toast.makeText(this,
+                            "Разрешите точные уведомления в настройках",
+                            Toast.LENGTH_LONG).show();
+                    return; // Не продолжаем без разрешения
+                }
+            }
+
+            // 3. Создаем Intent для BroadcastReceiver
             Intent intent = new Intent(this, SimpleReceiver.class);
             intent.setAction("MY_TEST_ACTION");
             intent.putExtra("extra", data.getMessage());
@@ -135,10 +154,9 @@ public class MainActivity extends AppCompatActivity
             intent.putExtra("title", data.getTitle());
             intent.putExtra("time", System.currentTimeMillis());
 
-            // ВАЖНОЕ ИСПРАВЛЕНИЕ: Правильные флаги для PendingIntent
+            // 4. Создаем PendingIntent
             int flags;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                // Для Android 12+ используем FLAG_IMMUTABLE или FLAG_MUTABLE с FLAG_UPDATE_CURRENT
                 flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
             } else {
                 flags = PendingIntent.FLAG_UPDATE_CURRENT;
@@ -153,6 +171,7 @@ public class MainActivity extends AppCompatActivity
 
             long triggerTime = data.getTimeInMillis();
 
+            // 5. Устанавливаем будильник
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 alarmManager.setExactAndAllowWhileIdle(
                         AlarmManager.RTC_WAKEUP,
@@ -173,27 +192,18 @@ public class MainActivity extends AppCompatActivity
                 );
             }
 
-            // 6. Проверяем, что все установлено правильно
-            // Для проверки используем тот же набор флагов
-            boolean isSet = (PendingIntent.getBroadcast(this, data.getId(),
-                    intent, flags | PendingIntent.FLAG_NO_CREATE) != null);
-
-        } catch (SecurityException e) {
-
-            // Для Android 12+ нужно специальное разрешение
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-                if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
-                    Intent permissionIntent = new Intent(
-                            android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
-                    );
-                    startActivity(permissionIntent);
-                    android.widget.Toast.makeText(this,
-                            "Разрешите точные уведомления в настройках",
-                            android.widget.Toast.LENGTH_LONG).show();
-                }
+            if (!checkAllNotificationPermissions(this))
+            {
+                openNotificationSettings(this);
             }
 
+            Log.d("MyTag", "Уведомление запланировано на: " + new Date(triggerTime));
+
+        } catch (SecurityException e) {
+            Log.e("MyTag", "SecurityException: " + e.getMessage());
+            Toast.makeText(this,
+                    "Ошибка безопасности. Проверьте разрешения",
+                    Toast.LENGTH_LONG).show();
         }
     }
 
@@ -290,6 +300,57 @@ public class MainActivity extends AppCompatActivity
             pendingIntent.cancel();
         }
 
+    }
+
+    public static boolean checkAllNotificationPermissions(Context context, int sdkVersion) {
+        if (sdkVersion >= Build.VERSION_CODES.TIRAMISU) {
+            NotificationManager notificationManager =
+                    (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (notificationManager != null && !notificationManager.areNotificationsEnabled()) {
+                return false;
+            }
+        }
+
+        if (sdkVersion >= Build.VERSION_CODES.S) {
+            AlarmManager alarmManager =
+                    (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Оригинальный метод (для продакшена)
+    public static boolean checkAllNotificationPermissions(Context context) {
+        return checkAllNotificationPermissions(context, Build.VERSION.SDK_INT);
+    }
+
+    private void openNotificationSettings(Context context) {
+        Intent intent;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+            intent.putExtra(Settings.EXTRA_APP_PACKAGE, context.getPackageName());
+        } else {
+            intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            Uri uri = Uri.fromParts("package", context.getPackageName(), null);
+            intent.setData(uri);
+        }
+
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        try {
+            context.startActivity(intent);
+        } catch (Exception e) {
+            // Фолбэк на общие настройки приложения
+            intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            Uri uri = Uri.fromParts("package", context.getPackageName(), null);
+            intent.setData(uri);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        }
     }
 
     @Override

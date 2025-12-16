@@ -26,9 +26,9 @@ public class SimpleReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        createNotificationChannel(context);
 
-//        Log.d(LOG_TAG, "onReceive вызван");
+        notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
         String title = intent.getStringExtra("title");
         String text = intent.getStringExtra("extra");
@@ -49,7 +49,6 @@ public class SimpleReceiver extends BroadcastReceiver {
             notificationId = (int) System.currentTimeMillis() % 10000;
         }
 
-        // Вызываем метод для показа уведомления
         ShowNotification(context, title, text, notificationId);
     }
 
@@ -63,9 +62,7 @@ public class SimpleReceiver extends BroadcastReceiver {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        // Важно: проверяем версию Android
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Для Android 8.0+ используем канал
             Notification.Builder builder = new Notification.Builder(context, CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.ic_dialog_info) // временно системная иконка
                     .setContentTitle(Title)
@@ -80,7 +77,6 @@ public class SimpleReceiver extends BroadcastReceiver {
             notificationManager.notify(NOTIFICATION_ID, notification);
 
         } else {
-            // Для старых версий Android
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
                     .setSmallIcon(android.R.drawable.ic_dialog_info)
                     .setContentTitle(Title)
@@ -93,40 +89,36 @@ public class SimpleReceiver extends BroadcastReceiver {
             notificationManager.notify(NOTIFICATION_ID, notification);
         }
 
-        checkNotificationPermission(context);
+//        checkNotificationPermission(context);
     }
 
     private void createNotificationChannel(Context context)
     {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        CharSequence channelName = "Мои уведомления";
+        String channelDescription = "Канал для показа уведомлений";
+        int importance = NotificationManager.IMPORTANCE_HIGH;
+
+        NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                channelName,
+                importance
+        );
+        channel.setDescription(channelDescription);
+        channel.enableLights(true);
+        channel.enableVibration(true);
+        channel.setVibrationPattern(new long[]{0, 500, 250, 500});
+
+        if (notificationManager != null)
         {
-            CharSequence channelName = "Мои уведомления";
-            String channelDescription = "Канал для показа уведомлений";
-            int importance = NotificationManager.IMPORTANCE_HIGH;
-
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    channelName,
-                    importance
-            );
-            channel.setDescription(channelDescription);
-            channel.enableLights(true);
-            channel.enableVibration(true);
-            channel.setVibrationPattern(new long[]{0, 500, 250, 500});
-
-            if (notificationManager != null)
-            {
-                notificationManager.createNotificationChannel(channel);
-            }
+            notificationManager.createNotificationChannel(channel);
         }
 
-        checkNotificationPermission(context);
+//        checkNotificationPermission(context);
     }
 
 
     private void checkNotificationPermission(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Открываем настройки уведомлений приложения
             Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
             intent.putExtra(Settings.EXTRA_APP_PACKAGE, context.getPackageName());
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -134,7 +126,6 @@ public class SimpleReceiver extends BroadcastReceiver {
             try {
                 context.startActivity(intent);
             } catch (Exception e) {
-                // Альтернативный способ
                 Intent appSettingsIntent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
                 Uri uri = Uri.fromParts("package", context.getPackageName(), null);
                 appSettingsIntent.setData(uri);

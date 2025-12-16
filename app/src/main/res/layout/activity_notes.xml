@@ -34,7 +34,6 @@
         android:layout_height="wrap_content"
         android:layout_margin="24dp"
         android:contentDescription="Добавить уведомление"
-        android:onClick="showNotification"
         android:src="@android:drawable/ic_menu_add"
         app:backgroundTint="@color/white"
         app:layout_constraintBottom_toBottomOf="parent"
