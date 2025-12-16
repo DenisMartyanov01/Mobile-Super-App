@@ -7,6 +7,7 @@ public class NoteData implements Serializable {
     private String title;
     private String content;
     private String date;
+    private String imagePath;
 
     public NoteData() {
         // Пустой конструктор необходим для Firebase
@@ -48,5 +49,13 @@ public class NoteData implements Serializable {
 
     public void setDate(String date) {
         this.date = date;
+    }
+
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
     }
 }
