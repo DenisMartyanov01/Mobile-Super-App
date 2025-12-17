@@ -111,11 +111,11 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
         }
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
+    public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView titleTextView;
         TextView messageTextView;
         TextView timeTextView;
-        TextView statusTextView;
+        public TextView statusTextView;
 
         ViewHolder(View itemView) {
             super(itemView);

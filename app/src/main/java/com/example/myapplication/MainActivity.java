@@ -1,4 +1,4 @@
-package com.example.myapplication.Notifications;
+package com.example.myapplication;
 
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
@@ -12,7 +12,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings;
 import android.util.Log;
-import android.view.View;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -21,7 +20,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication.Notes.NotesActivity;
-import com.example.myapplication.R;
+import com.example.myapplication.Notifications.NotificationAdapter;
+import com.example.myapplication.Notifications.NotificationData;
+import com.example.myapplication.Notifications.NotificationDialog;
+import com.example.myapplication.Notifications.SimpleReceiver;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
 import java.util.Date;
@@ -34,76 +37,47 @@ public class MainActivity extends AppCompatActivity
     private RecyclerView recyclerView;
     private NotificationAdapter adapter;
     private FloatingActionButton fabAdd;
-
     private List<NotificationData> notifications = new ArrayList<>();
     private int nextId = 1;
-
     private Handler updateHandler;
     private Runnable updateRunnable;
     private static final long CHECK_INTERVAL_MS = 1000;
+    private BottomNavigationView bottomNavigationView;
 
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        recyclerView = findViewById(R.id.recyclerView);
         fabAdd = findViewById(R.id.fabAdd);
+        bottomNavigationView = findViewById(R.id.bottom_navigation);
 
         fabAdd.setOnClickListener(v -> showNotificationDialog(null));
 
+        recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new NotificationAdapter(notifications, this);
         recyclerView.setAdapter(adapter);
 
-        loadData();
+        setupBottomNavigation();
 
         startInstantNotificationChecker();
     }
 
-    public void GoToNotesActivity(View v)
-    {
-        Intent intent = new Intent(this, NotesActivity.class);
-        startActivity(intent);
+    private void setupBottomNavigation() {
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+
+            if (id == R.id.bottom_nav_notes) {
+                Intent intent = new Intent(MainActivity.this, NotesActivity.class);
+                startActivity(intent);
+                return true;
+            }
+            return false;
+        });
     }
 
-    private void loadData()
-    {
-        notifications.clear();
-
-//        Calendar calendar = Calendar.getInstance();
-//
-//        Intent intent = new Intent(this, SimpleReceiver.class);
-
-//        for(int i = 0; i < 20; i++) {
-//            PendingIntent pi = PendingIntent.getBroadcast(
-//                    this,
-//                    i,
-//                    intent,
-//                    PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
-//            );
-//
-//            if (pi == null) continue;
-//
-//            calendar.add(Calendar.SECOND, 10);
-//            notifications.add(new NotificationData(
-//                    i,
-//                    "Тест: удалится через 10 сек",
-//                    "Это уведомление удалится сразу по истечении времени",
-//                    calendar.getTimeInMillis()
-//            ));
-//            nextId = i + 1;
-//
-//        }
-
-        // Типо можно проверить существует ли этот pendingIntent, но он не могет его
-        // дату узнатть, так что надо сохранять инфу уведомлений отдельно походу.
-
-
-        adapter.notifyDataSetChanged();
-
-        RemoveExpiredNotifications();
-    }
     private void showNotificationDialog(NotificationData notificationData) {
         NotificationDialog dialog = new NotificationDialog();
 
@@ -383,9 +357,8 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public void onNotificationClick(NotificationData notification)
-    {
-        showNotificationDialog(notification);
+    public void onNotificationClick(NotificationData notification) {
+
     }
 
     @Override
@@ -505,4 +478,5 @@ public class MainActivity extends AppCompatActivity
             updateHandler.removeCallbacks(updateRunnable);
         }
     }
+
 }
