@@ -11,6 +11,10 @@ public class NotificationData implements Serializable {
     private String message;
     private long timeInMillis;
 
+    public NotificationData() {
+        // Пустой конструктор для работы с БД
+    }
+
     public NotificationData(int id, String title, String message, long timeInMillis) {
         this.id = id;
         this.title = title;

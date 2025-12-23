@@ -24,6 +24,7 @@ import com.example.myapplication.Notifications.NotificationAdapter;
 import com.example.myapplication.Notifications.NotificationData;
 import com.example.myapplication.Notifications.NotificationDialog;
 import com.example.myapplication.Notifications.SimpleReceiver;
+import com.example.myapplication.DatabaseHelper;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
@@ -43,6 +44,7 @@ public class MainActivity extends AppCompatActivity
     private Runnable updateRunnable;
     private static final long CHECK_INTERVAL_MS = 1000;
     private BottomNavigationView bottomNavigationView;
+    private DatabaseHelper db;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -60,7 +62,11 @@ public class MainActivity extends AppCompatActivity
         adapter = new NotificationAdapter(notifications, this);
         recyclerView.setAdapter(adapter);
 
+        db = new DatabaseHelper(this);
+
         setupBottomNavigation();
+
+        loadNotifications();
 
         startInstantNotificationChecker();
     }
@@ -93,8 +99,16 @@ public class MainActivity extends AppCompatActivity
     @SuppressLint("ScheduleExactAlarm")
     private void CreateNotification(NotificationData data) {
         try {
+            // Сохраняем в БД и получаем ID
+            long dbId = db.addNotification(data);
+            data.setId((int) dbId);
+            
+            // Обновляем nextId если нужно
+            if (dbId >= nextId) {
+                nextId = (int) dbId + 1;
+            }
+            
             // Добавляем в список
-            data.setId(nextId++);
             notifications.add(0, data);
             adapter.notifyDataSetChanged();
 
@@ -183,6 +197,10 @@ public class MainActivity extends AppCompatActivity
 
     private void EditNotification(NotificationData data)
     {
+        // Обновляем в БД
+        db.updateNotification(data);
+        
+        // Обновляем в списке
         for (int i = 0; i < notifications.size(); i++)
         {
             if (notifications.get(i).getId() == data.getId())
@@ -244,6 +262,10 @@ public class MainActivity extends AppCompatActivity
 
     private void DeleteNotification(int id)
     {
+        // Удаляем из БД
+        db.deleteNotification(id);
+        
+        // Удаляем из списка
         for (int i = 0; i < notifications.size(); i++)
         {
             if (notifications.get(i).getId() == id)
@@ -457,7 +479,9 @@ public class MainActivity extends AppCompatActivity
             NotificationData notification = notifications.get(i);
 
             if (currentTime >= notification.getTimeInMillis()) {
-
+                // Удаляем из БД
+                db.deleteNotification(notification.getId());
+                
                 notifications.remove(i);
                 adapter.notifyItemRemoved(i);
                 removedAny = true;
@@ -469,6 +493,105 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    private void loadNotifications() {
+        notifications.clear();
+        List<NotificationData> dbNotifications = db.getAllNotifications();
+        
+        // Определяем максимальный ID для nextId
+        int maxId = 0;
+        for (NotificationData notification : dbNotifications) {
+            notifications.add(notification);
+            if (notification.getId() > maxId) {
+                maxId = notification.getId();
+            }
+            // Восстанавливаем будильники для активных уведомлений
+            if (!notification.isTimePassed()) {
+                restoreAlarmForNotification(notification);
+            }
+        }
+        nextId = maxId + 1;
+        
+        // Сортируем по времени (ближайшие сверху)
+        notifications.sort((n1, n2) -> Long.compare(n1.getTimeInMillis(), n2.getTimeInMillis()));
+        
+        adapter.notifyDataSetChanged();
+    }
+
+    @SuppressLint("ScheduleExactAlarm")
+    private void restoreAlarmForNotification(NotificationData data) {
+        try {
+            AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager == null) {
+                return;
+            }
+
+            Intent intent = new Intent(this, SimpleReceiver.class);
+            intent.setAction("MY_TEST_ACTION");
+            intent.putExtra("extra", data.getMessage());
+            intent.putExtra("notification_id", data.getId());
+            intent.putExtra("title", data.getTitle());
+            intent.putExtra("time", System.currentTimeMillis());
+
+            int flags;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+            } else {
+                flags = PendingIntent.FLAG_UPDATE_CURRENT;
+            }
+
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    this,
+                    data.getId(),
+                    intent,
+                    flags
+            );
+
+            long triggerTime = data.getTimeInMillis();
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerTime,
+                        pendingIntent
+                );
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                alarmManager.setExact(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerTime,
+                        pendingIntent
+                );
+            } else {
+                alarmManager.set(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerTime,
+                        pendingIntent
+                );
+            }
+        } catch (SecurityException e) {
+            Log.e("MyTag", "SecurityException при восстановлении будильника: " + e.getMessage());
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Обновляем список уведомлений (без повторного восстановления будильников)
+        notifications.clear();
+        List<NotificationData> dbNotifications = db.getAllNotifications();
+        
+        int maxId = 0;
+        for (NotificationData notification : dbNotifications) {
+            notifications.add(notification);
+            if (notification.getId() > maxId) {
+                maxId = notification.getId();
+            }
+        }
+        nextId = maxId + 1;
+        
+        notifications.sort((n1, n2) -> Long.compare(n1.getTimeInMillis(), n2.getTimeInMillis()));
+        adapter.notifyDataSetChanged();
+    }
+
     @Override
     protected void onDestroy()
     {
@@ -476,6 +599,9 @@ public class MainActivity extends AppCompatActivity
         if (updateHandler != null)
         {
             updateHandler.removeCallbacks(updateRunnable);
+        }
+        if (db != null) {
+            db.close();
         }
     }
 
