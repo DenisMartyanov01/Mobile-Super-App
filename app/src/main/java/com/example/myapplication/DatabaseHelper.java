@@ -7,7 +7,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
 import com.example.myapplication.Notes.NoteData;
-import com.example.myapplication.Notifications.NotificationData;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,13 +37,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     COLUMN_DATE + " TEXT, " +
                     COLUMN_IMAGE_PATH + " TEXT)";
 
-    private static final String CREATE_TABLE_NOTIFICATIONS =
-            "CREATE TABLE " + TABLE_NOTIFICATIONS + " (" +
-                    COLUMN_NOTIFICATION_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    COLUMN_NOTIFICATION_TITLE + " TEXT, " +
-                    COLUMN_NOTIFICATION_MESSAGE + " TEXT, " +
-                    COLUMN_NOTIFICATION_TIME + " INTEGER)";
-
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
@@ -52,7 +44,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(CREATE_TABLE_NOTES);
-        db.execSQL(CREATE_TABLE_NOTIFICATIONS);
     }
 
     @Override
@@ -60,12 +51,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 2) {
             db.execSQL("ALTER TABLE " + TABLE_NOTES + " ADD COLUMN " + COLUMN_IMAGE_PATH + " TEXT");
         }
-        if (oldVersion < 3) {
-            db.execSQL(CREATE_TABLE_NOTIFICATIONS);
-        }
     }
 
-    // Добавление заметки
     public long addNote(NoteData note) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -79,7 +66,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return id;
     }
 
-    // Получение всех заметок
     public List<NoteData> getAllNotes() {
         List<NoteData> notes = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
@@ -105,7 +91,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return notes;
     }
 
-    // Получение заметки по ID
     public NoteData getNote(long id) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.query(TABLE_NOTES,
@@ -131,7 +116,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return note;
     }
 
-    // Обновление заметки
     public int updateNote(NoteData note) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -145,7 +129,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 new String[]{String.valueOf(note.getId())});
     }
 
-    // Удаление заметки
     public void deleteNote(long id) {
         SQLiteDatabase db = this.getWritableDatabase();
         db.delete(TABLE_NOTES, COLUMN_ID + " = ?",
@@ -153,87 +136,4 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
     }
 
-    // ========== Методы для работы с уведомлениями ==========
-
-    // Добавление уведомления
-    public long addNotification(NotificationData notification) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(COLUMN_NOTIFICATION_TITLE, notification.getTitle());
-        values.put(COLUMN_NOTIFICATION_MESSAGE, notification.getMessage());
-        values.put(COLUMN_NOTIFICATION_TIME, notification.getTimeInMillis());
-
-        long id = db.insert(TABLE_NOTIFICATIONS, null, values);
-        db.close();
-        return id;
-    }
-
-    // Получение всех уведомлений
-    public List<NotificationData> getAllNotifications() {
-        List<NotificationData> notifications = new ArrayList<>();
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        String query = "SELECT * FROM " + TABLE_NOTIFICATIONS + " ORDER BY " + COLUMN_NOTIFICATION_TIME + " ASC";
-        Cursor cursor = db.rawQuery(query, null);
-
-        if (cursor.moveToFirst()) {
-            do {
-                NotificationData notification = new NotificationData();
-                notification.setId(cursor.getInt(0));
-                notification.setTitle(cursor.getString(1));
-                notification.setMessage(cursor.getString(2));
-                notification.setTimeInMillis(cursor.getLong(3));
-                notifications.add(notification);
-            } while (cursor.moveToNext());
-        }
-        cursor.close();
-        db.close();
-        return notifications;
-    }
-
-    // Получение уведомления по ID
-    public NotificationData getNotification(int id) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.query(TABLE_NOTIFICATIONS,
-                new String[]{COLUMN_NOTIFICATION_ID, COLUMN_NOTIFICATION_TITLE, 
-                             COLUMN_NOTIFICATION_MESSAGE, COLUMN_NOTIFICATION_TIME},
-                COLUMN_NOTIFICATION_ID + "=?",
-                new String[]{String.valueOf(id)},
-                null, null, null, null);
-
-        NotificationData notification = null;
-        if (cursor != null && cursor.moveToFirst()) {
-            notification = new NotificationData();
-            notification.setId(cursor.getInt(0));
-            notification.setTitle(cursor.getString(1));
-            notification.setMessage(cursor.getString(2));
-            notification.setTimeInMillis(cursor.getLong(3));
-            cursor.close();
-        }
-        db.close();
-        return notification;
-    }
-
-    // Обновление уведомления
-    public int updateNotification(NotificationData notification) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(COLUMN_NOTIFICATION_TITLE, notification.getTitle());
-        values.put(COLUMN_NOTIFICATION_MESSAGE, notification.getMessage());
-        values.put(COLUMN_NOTIFICATION_TIME, notification.getTimeInMillis());
-
-        int result = db.update(TABLE_NOTIFICATIONS, values,
-                COLUMN_NOTIFICATION_ID + " = ?",
-                new String[]{String.valueOf(notification.getId())});
-        db.close();
-        return result;
-    }
-
-    // Удаление уведомления
-    public void deleteNotification(int id) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.delete(TABLE_NOTIFICATIONS, COLUMN_NOTIFICATION_ID + " = ?",
-                new String[]{String.valueOf(id)});
-        db.close();
-    }
 }

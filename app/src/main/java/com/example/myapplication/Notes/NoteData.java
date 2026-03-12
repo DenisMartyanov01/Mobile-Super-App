@@ -10,7 +10,6 @@ public class NoteData implements Serializable {
     private String imagePath;
 
     public NoteData() {
-        // Пустой конструктор необходим для Firebase
     }
 
     public NoteData(String title, String content, String date) {
