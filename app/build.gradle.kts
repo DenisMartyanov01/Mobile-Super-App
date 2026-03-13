@@ -44,6 +44,7 @@ dependencies {
     implementation(libs.navigation.ui)
     implementation(libs.activity)
     implementation(libs.work.runtime)
+    implementation(libs.firebase.crashlytics.buildtools)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
@@ -53,4 +54,5 @@ dependencies {
     implementation("androidx.cardview:cardview:1.0.0")
     implementation("androidx.recyclerview:recyclerview:1.3.0")
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("com.google.code.gson:gson:2.10.1")
 }

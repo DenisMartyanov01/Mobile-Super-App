@@ -13,10 +13,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="24dp"
-        android:contentDescription="Добавить уведомление"
         android:src="@android:drawable/ic_menu_add"
-        app:backgroundTint="@color/white"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:backgroundTint="@color/cardview_dark_background"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <TextView
         android:id="@+id/titleTextView"
@@ -31,15 +31,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ListView
+    <com.example.myapplication.DragNDropListView
         android:id="@+id/listViewNotes"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="12dp"
+        android:listSelector="@android:color/transparent"
         android:paddingHorizontal="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/titleTextView"
-        app:layout_constraintVertical_bias="1.0"
         tools:layout_editor_absoluteX="0dp" />
-
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>
