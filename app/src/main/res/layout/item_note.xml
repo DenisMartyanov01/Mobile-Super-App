@@ -4,18 +4,49 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="8dp"
-    android:layout_marginTop="8dp"
-    android:layout_marginBottom="12dp"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="4dp"
     app:cardCornerRadius="8dp"
     app:cardElevation="4dp"
     android:background="?android:attr/selectableItemBackground">
 
     <LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:padding="16dp">
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp">
 
+        <!-- Контейнер для стрелок -->
+        <LinearLayout
+            android:id="@+id/arrowContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:layout_marginEnd="12dp"
+            android:visibility="visible">
+
+            <ImageButton
+                android:id="@+id/btnMoveUp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_arrow_up"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:tint="?android:attr/textColorSecondary"
+                android:visibility="visible"/> 
+
+            <ImageButton
+                android:id="@+id/btnMoveDown"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_arrow_down"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:tint="?android:attr/textColorSecondary"
+                android:visibility="visible"/> <!-- Временно сделаем видимым -->
+
+        </LinearLayout>
+
+        <!-- Контейнер с текстом заметки -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -28,7 +59,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:layout_marginBottom="4dp"/>
+                android:textColor="?android:attr/textColorPrimary"/>
 
             <TextView
                 android:id="@+id/textViewNotePreview"
@@ -36,7 +67,8 @@
                 android:layout_height="wrap_content"
                 android:textSize="14sp"
                 android:maxLines="2"
-                android:ellipsize="end"/>
+                android:ellipsize="end"
+                android:textColor="?android:attr/textColorSecondary"/>
 
         </LinearLayout>
 

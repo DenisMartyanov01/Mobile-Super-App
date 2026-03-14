@@ -1,14 +1,19 @@
 package com.example.myapplication;
 
+import android.app.Dialog;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -17,6 +22,10 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
+import com.example.myapplication.DatabaseHelper;
+import com.example.myapplication.R;
+import com.example.myapplication.ImageHelper;
+import com.example.myapplication.ThemeManager;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -32,6 +41,7 @@ public class EditNoteActivity extends AppCompatActivity {
 
     private DatabaseHelper db;
     private ImageHelper imageHelper;
+    private ThemeManager themeManager;
     private String noteId;
     private List<String> imagePaths = new ArrayList<>();
 
@@ -41,7 +51,6 @@ public class EditNoteActivity extends AppCompatActivity {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     Uri selectedImage = result.getData().getData();
                     if (selectedImage != null) {
-                        // Сохраняем изображение во внутреннее хранилище
                         String savedPath = imageHelper.saveImageToInternalStorage(selectedImage);
                         if (savedPath != null) {
                             imagePaths.add(savedPath);
@@ -55,6 +64,14 @@ public class EditNoteActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        themeManager = new ThemeManager(this);
+
+        if (themeManager.isDarkMode()) {
+            setTheme(R.style.Theme_MyApplication_Dark);
+        } else {
+            setTheme(R.style.Theme_MyApplication);
+        }
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_note);
 
@@ -94,7 +111,6 @@ public class EditNoteActivity extends AppCompatActivity {
     }
 
     private void addImageToContainer(String imagePath) {
-        // Создаем контейнер для изображения и кнопки удаления
         LinearLayout imageItemLayout = new LinearLayout(this);
         imageItemLayout.setOrientation(LinearLayout.VERTICAL);
 
@@ -103,7 +119,6 @@ public class EditNoteActivity extends AppCompatActivity {
         itemParams.setMargins(8, 8, 8, 8);
         imageItemLayout.setLayoutParams(itemParams);
 
-        // ImageView для изображения
         ImageView imageView = new ImageView(this);
         LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(
                 200, 200);
@@ -111,7 +126,6 @@ public class EditNoteActivity extends AppCompatActivity {
         imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
         imageView.setTag(imagePath);
 
-        // Загружаем изображение из файла
         File imageFile = new File(imagePath);
         if (imageFile.exists()) {
             Glide.with(this)
@@ -120,20 +134,17 @@ public class EditNoteActivity extends AppCompatActivity {
                     .into(imageView);
         }
 
-        // Обработчик нажатия на изображение для открытия на весь экран
         imageView.setOnClickListener(v -> {
             String path = (String) v.getTag();
             openFullScreenImage(path);
         });
 
-        // Кнопка удаления изображения
         Button btnRemove = new Button(this);
         btnRemove.setText("✕");
         btnRemove.setTextSize(12);
         btnRemove.setPadding(0, 0, 0, 0);
 
         btnRemove.setOnClickListener(v -> {
-            // Удаляем файл изображения
             imageHelper.deleteImage(imagePath);
             imagesContainer.removeView(imageItemLayout);
             imagePaths.remove(imagePath);
@@ -165,7 +176,6 @@ public class EditNoteActivity extends AppCompatActivity {
 
         try {
             if (noteId == null) {
-                // Создание новой заметки
                 NoteData note = new NoteData(title, content, date);
                 note.setImagePaths(imagePaths);
                 long id = db.addNote(note);
@@ -175,10 +185,8 @@ public class EditNoteActivity extends AppCompatActivity {
                     Toast.makeText(this, "Ошибка при сохранении", Toast.LENGTH_SHORT).show();
                 }
             } else {
-                // Обновление существующей заметки
                 NoteData note = db.getNote(Long.parseLong(noteId));
                 if (note != null) {
-                    // Удаляем старые изображения, которых больше нет
                     List<String> oldImages = note.getImagePaths();
                     if (oldImages != null) {
                         for (String oldImage : oldImages) {
@@ -212,12 +220,10 @@ public class EditNoteActivity extends AppCompatActivity {
                 editTextTitle.setText(note.getTitle());
                 editTextContent.setText(note.getContent());
 
-                // Загружаем изображения
                 imagesContainer.removeAllViews();
                 if (note.getImagePaths() != null) {
                     imagePaths = new ArrayList<>(note.getImagePaths());
                     for (String path : imagePaths) {
-                        // Проверяем, существует ли файл
                         if (imageHelper.imageExists(path)) {
                             addImageToContainer(path);
                         }
@@ -231,48 +237,108 @@ public class EditNoteActivity extends AppCompatActivity {
     }
 
     private void showDeleteDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Удаление заметки")
-                .setMessage("Вы уверены, что хотите удалить эту заметку?")
-                .setPositiveButton("Удалить", (dialog, which) -> {
-                    try {
-                        // Удаляем все изображения заметки
-                        NoteData note = db.getNote(Long.parseLong(noteId));
-                        if (note != null && note.getImagePaths() != null) {
-                            for (String imagePath : note.getImagePaths()) {
-                                imageHelper.deleteImage(imagePath);
-                            }
-                        }
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_delete_note);
 
-                        db.deleteNote(Long.parseLong(noteId));
-                        Toast.makeText(this, "Заметка удалена", Toast.LENGTH_SHORT).show();
-                        finish();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        Toast.makeText(this, "Ошибка при удалении", Toast.LENGTH_SHORT).show();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        TextView titleTextView = dialog.findViewById(R.id.dialogTitle);
+        TextView messageTextView = dialog.findViewById(R.id.dialogMessage);
+
+        titleTextView.setText("Удаление заметки");
+        messageTextView.setText("Вы уверены, что хотите удалить эту заметку?");
+
+        Button cancelButton = dialog.findViewById(R.id.dialogCancelButton);
+        Button deleteButton = dialog.findViewById(R.id.dialogDeleteButton);
+
+        if (themeManager.isDarkMode()) {
+            deleteButton.setBackgroundTintList(getResources().getColorStateList(R.color.delete_button_color_dark));
+        } else {
+            deleteButton.setBackgroundTintList(getResources().getColorStateList(R.color.delete_button_color));
+        }
+
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+
+        deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    NoteData note = db.getNote(Long.parseLong(noteId));
+                    if (note != null && note.getImagePaths() != null) {
+                        for (String imagePath : note.getImagePaths()) {
+                            imageHelper.deleteImage(imagePath);
+                        }
                     }
-                })
-                .setNegativeButton("Отмена", null)
-                .show();
+
+                    db.deleteNote(Long.parseLong(noteId));
+                    Toast.makeText(EditNoteActivity.this, "Заметка удалена", Toast.LENGTH_SHORT).show();
+                    finish();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(EditNoteActivity.this, "Ошибка при удалении", Toast.LENGTH_SHORT).show();
+                }
+                dialog.dismiss();
+            }
+        });
+
+        dialog.show();
     }
 
     @Override
     public void onBackPressed() {
         if (hasUnsavedChanges()) {
-            new AlertDialog.Builder(this)
-                    .setTitle("Несохраненные изменения")
-                    .setMessage("У вас есть несохраненные изменения. Выйти без сохранения?")
-                    .setPositiveButton("Выйти", (dialog, which) -> {
-                        // Если выходим без сохранения, удаляем новые изображения
-                        if (noteId == null) {
-                            for (String imagePath : imagePaths) {
-                                imageHelper.deleteImage(imagePath);
-                            }
+            final Dialog dialog = new Dialog(this);
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+            dialog.setContentView(R.layout.dialog_delete_note);
+
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            }
+
+            TextView titleTextView = dialog.findViewById(R.id.dialogTitle);
+            TextView messageTextView = dialog.findViewById(R.id.dialogMessage);
+            Button cancelButton = dialog.findViewById(R.id.dialogCancelButton);
+            Button deleteButton = dialog.findViewById(R.id.dialogDeleteButton);
+
+            titleTextView.setText("Несохраненные изменения");
+            messageTextView.setText("У вас есть несохраненные изменения. Выйти без сохранения?");
+            deleteButton.setText("Выйти");
+
+            if (themeManager.isDarkMode()) {
+                deleteButton.setBackgroundTintList(getResources().getColorStateList(R.color.delete_button_color_dark));
+            } else {
+                deleteButton.setBackgroundTintList(getResources().getColorStateList(R.color.delete_button_color));
+            }
+
+            cancelButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dialog.dismiss();
+                }
+            });
+
+            deleteButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (noteId == null) {
+                        for (String imagePath : imagePaths) {
+                            imageHelper.deleteImage(imagePath);
                         }
-                        super.onBackPressed();
-                    })
-                    .setNegativeButton("Остаться", null)
-                    .show();
+                    }
+                    dialog.dismiss();
+                    finish();
+                }
+            });
+
+            dialog.show();
         } else {
             super.onBackPressed();
         }
@@ -283,10 +349,8 @@ public class EditNoteActivity extends AppCompatActivity {
         String currentContent = editTextContent.getText().toString().trim();
 
         if (noteId == null) {
-            // Новая заметка
             return !currentTitle.isEmpty() || !currentContent.isEmpty() || !imagePaths.isEmpty();
         } else {
-            // Существующая заметка
             try {
                 NoteData original = db.getNote(Long.parseLong(noteId));
                 if (original != null) {

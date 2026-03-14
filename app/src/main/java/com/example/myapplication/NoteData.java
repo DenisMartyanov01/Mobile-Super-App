@@ -10,7 +10,7 @@ public class NoteData implements Serializable {
     private String content;
     private String date;
     private List<String> imagePaths;
-    private int order; // Новое поле для сортировки
+    private int order;
 
     public NoteData() {
         this.imagePaths = new ArrayList<>();

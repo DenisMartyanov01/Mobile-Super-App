@@ -23,18 +23,14 @@ public class ImageHelper {
         this.context = context;
     }
 
-    // Сохраняем изображение во внутреннее хранилище и возвращаем новый путь
     public String saveImageToInternalStorage(Uri imageUri) {
         try {
-            // Создаем уникальное имя файла
             String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
             String imageFileName = "IMG_" + timeStamp + ".jpg";
 
-            // Получаем директорию для изображений
             File storageDir = context.getFilesDir();
             File imageFile = new File(storageDir, imageFileName);
 
-            // Копируем содержимое URI в файл
             InputStream inputStream = context.getContentResolver().openInputStream(imageUri);
             OutputStream outputStream = new FileOutputStream(imageFile);
 
@@ -47,7 +43,6 @@ public class ImageHelper {
             outputStream.close();
             inputStream.close();
 
-            // Возвращаем абсолютный путь к файлу
             return imageFile.getAbsolutePath();
 
         } catch (Exception e) {
@@ -56,7 +51,6 @@ public class ImageHelper {
         }
     }
 
-    // Удаляем изображение из внутреннего хранилища
     public boolean deleteImage(String imagePath) {
         try {
             File imageFile = new File(imagePath);
@@ -67,7 +61,6 @@ public class ImageHelper {
         }
     }
 
-    // Получаем Bitmap из пути к файлу
     public Bitmap getImageBitmap(String imagePath) {
         try {
             File imageFile = new File(imagePath);
@@ -80,7 +73,6 @@ public class ImageHelper {
         return null;
     }
 
-    // Проверяем, существует ли файл
     public boolean imageExists(String imagePath) {
         if (imagePath == null) return false;
         File imageFile = new File(imagePath);
